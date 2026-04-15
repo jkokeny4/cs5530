@@ -21,6 +21,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace LMS.Areas.Identity.Pages.Account
@@ -165,7 +166,7 @@ namespace LMS.Areas.Identity.Pages.Account
             // If we got this far, something failed, redisplay form
             return Page();
         }
-
+        
         private IdentityUser CreateUser()
         {
             try
@@ -192,10 +193,95 @@ namespace LMS.Areas.Identity.Pages.Account
         /// <param name="departmentAbbrev">The department abbreviation that the user belongs to (ignore for Admins) </param>
         /// <param name="role">The user's role: one of "Administrator", "Professor", "Student"</param>
         /// <returns>The uID of the new user</returns>
-        string CreateNewUser( string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role )
+        string CreateNewUser(string firstName, string lastName, DateTime DOB, string departmentAbbrev, string role)
         {
-            return "unknown";
+
+            var newID = "J'DINKLANGE MORGOONE";
+            using (db)
+            {
+                // find max to get uID
+                var maxUID = "u3000000";
+                var adminQuery =
+                    from a in db.Administrators
+                    select a.UId;
+                var profQuery =
+                    from p in db.Professors
+                    select p.UId;
+                var studQuery =
+                    from s in db.Students
+                    select s.UId;
+
+                foreach (var v in adminQuery)
+                {
+                    if (int.Parse(v.Substring(1)) > int.Parse(maxUID.Substring(1)))
+                        maxUID = v;
+
+                }
+                foreach (var v in profQuery)
+                {
+                    if (int.Parse(v.Substring(1)) > int.Parse(maxUID.Substring(1)))
+                        maxUID = v;
+
+                }
+                foreach (var v in studQuery)
+                {
+                    if (int.Parse(v.Substring(1)) > int.Parse(maxUID.Substring(1)))
+                        maxUID = v;
+
+                }
+
+                int num = int.Parse(maxUID.Substring(1));
+                num++;
+                newID = "u" + num;
+
+                var newDOB = DateOnly.FromDateTime(DOB);
+
+                switch (role)
+                {
+                    case "Administrator":
+
+                        Administrator newAdmin = new Administrator();
+                        newAdmin.FirstName = firstName;
+                        newAdmin.LastName = lastName;
+                        newAdmin.Dob = newDOB;
+                        newAdmin.UId = newID;
+
+                        db.Administrators.Add(newAdmin);
+
+                        break;
+                    //case 2 Professor
+                    case "Professor":
+                        Professor newProf = new Professor();
+                        newProf.Dob = newDOB;
+                        newProf.FirstName = firstName;
+                        newProf.LastName = lastName;
+                        newProf.UId = newID;
+
+                        db.Professors.Add(newProf);
+
+                        break;
+
+                    //case 3 Student
+                    case "Student":
+                        Student newStud = new Student();
+                        newStud.Dob = newDOB;
+                        newStud.FirstName = firstName;
+                        newStud.LastName = lastName;
+                        newStud.UId = newID;
+
+                        db.Students.Add(newStud);
+                        break;
+
+
+                }
+                db.SaveChanges();
+            }
+
+
+
+            return newID;
         }
+
 
         /*******End code to modify********/
     }
