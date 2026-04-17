@@ -118,7 +118,20 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetStudentsInClass(string subject, int num, string season, int year)
         {
-            return Json(null);
+            var query = from c in db.Classes
+                        join e in db.Enrolleds
+                        on c.ClassId equals e.ClassId
+                        join s in db.Students
+                        on e.UId equals s.UId 
+                        select new
+                        {
+                        fname = s.FirstName,
+                        lname = s.LastName,
+                        uid = s.UId,
+                        dob = s.Dob,
+                        grade = "Z"
+                        };
+            return Json(query.ToList());
         }
 
 
@@ -141,6 +154,9 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetAssignmentsInCategory(string subject, int num, string season, int year, string category)
         {
+            //var query = 
+
+
             return Json(null);
         }
 
@@ -159,6 +175,18 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>The JSON array</returns>
         public IActionResult GetAssignmentCategories(string subject, int num, string season, int year)
         {
+            //var query = from c in db.Courses
+            //            join g in db.Classes
+            //            on c.CourseId equals g.CourseId
+            //            join d in db.Departments
+            //            on c.DId equals d.DeptId
+            //            join a in db.AssignmentCatergories
+            //            on g.AssignmentCatergories
+            //            where g.Season == season && g.Year == year && c.Number == num && d.Name == subject
+            //            select new { 
+                        
+            //            };
+
             return Json(null);
         }
 
@@ -175,8 +203,43 @@ namespace LMS_CustomIdentity.Controllers
         /// <returns>A JSON object containing {success = true/false} </returns>
         public IActionResult CreateAssignmentCategory(string subject, int num, string season, int year, string category, int catweight)
         {
-            return Json(new { success = false });
+
+            var cID = (from c in db.Classes
+                       join h in db.Courses on c.CourseId equals h.CourseId
+                       join d in db.Departments on h.DId equals d.DeptId
+                       where d.SubjectAbbrev == subject
+                             && h.Number == num
+                             && c.Season == season
+                             && c.Year == year
+                       select (int?)c.ClassId).FirstOrDefault();
+
+            if (cID == null)
+            {
+                return Json(new { success = false });
+            }
+
+            var exists = db.AssignmentCatergories.Any(a =>
+                a.ClassId == cID.Value && a.Name == category);
+
+            if (exists)
+            {
+                return Json(new { success = false });
+            }
+
+            var assCat = new AssignmentCatergory
+            {
+                ClassId = cID.Value,
+                Name = category,
+                GradeWeight = (uint)catweight
+            };
+
+            db.AssignmentCatergories.Add(assCat);
+            db.SaveChanges();
+
+            return Json(new { success = true });
+
         }
+            
 
         /// <summary>
         /// Creates a new assignment for the given class and category.

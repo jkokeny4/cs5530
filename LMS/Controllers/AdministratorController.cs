@@ -110,6 +110,7 @@ namespace LMS.Controllers
             var query = from p in db.Professors
                         join d in db.Departments
                         on p.DId equals d.DeptId
+                        where d.SubjectAbbrev == subject
                         select new
                         {
                             fname = p.FirstName,
