@@ -250,8 +250,23 @@ namespace LMS_CustomIdentity.Controllers
         /// <param name="uid">The professor's uid</param>
         /// <returns>The JSON array</returns>
         public IActionResult GetMyClasses(string uid)
-        {            
-            return Json(null);
+        {
+            var query = from c in db.Classes
+                        join g in db.Courses
+                        on c.CourseId equals g.CourseId
+                        join d in db.Departments 
+                        on g.DId equals d.DeptId
+                        where c.ProfessorId == uid
+                        select new
+                        {
+                            subject = d.Name,
+                            number = g.Number,
+                            name = g.Name,
+                            season = c.Season,
+                            year = c.Year
+                        };
+
+            return Json(query.ToList());
         }
 
 

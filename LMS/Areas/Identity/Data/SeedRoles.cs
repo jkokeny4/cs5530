@@ -11,9 +11,20 @@ namespace LMS.Areas.Identity.Data
         public static async Task SeedRolesAsync(UserManager<ApplicationUser> userManager, RoleManager<IdentityRole> roleManager)
         {
             //Seed Roles
-            await roleManager.CreateAsync(new IdentityRole(Enums.Roles.Administrator.ToString()));
-            await roleManager.CreateAsync(new IdentityRole(Enums.Roles.Professor.ToString()));
-            await roleManager.CreateAsync(new IdentityRole(Enums.Roles.Student.ToString()));           
+            if (!await roleManager.RoleExistsAsync(Enums.Roles.Administrator.ToString()))
+            {
+                await roleManager.CreateAsync(new IdentityRole(Enums.Roles.Administrator.ToString()));
+            }
+
+            if (!await roleManager.RoleExistsAsync(Enums.Roles.Professor.ToString()))
+            {
+                await roleManager.CreateAsync(new IdentityRole(Enums.Roles.Professor.ToString()));
+            }
+
+            if (!await roleManager.RoleExistsAsync(Enums.Roles.Student.ToString()))
+            {
+                await roleManager.CreateAsync(new IdentityRole(Enums.Roles.Student.ToString()));
+            }
         }
     }
 }

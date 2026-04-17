@@ -80,7 +80,7 @@ namespace LMS.Areas.Identity.Pages.Account
         {
 
             [Required]
-            [Display( Name = "Role" )]
+            [Display(Name = "Role")]
             public string Role { get; set; }
 
             public List<SelectListItem> Roles { get; } = new List<SelectListItem>
@@ -95,6 +95,7 @@ namespace LMS.Areas.Identity.Pages.Account
             public List<SelectListItem> Departments { get; set; } = new List<SelectListItem>
             {
                 new SelectListItem{Value = "None", Text = "NONE"}
+                
             };
 
             [Required]
@@ -129,6 +130,16 @@ namespace LMS.Areas.Identity.Pages.Account
         {
             ReturnUrl = returnUrl;
             ExternalLogins = ( await _signInManager.GetExternalAuthenticationSchemesAsync() ).ToList();
+          
+                var query = from d in db.Departments
+                            select d.SubjectAbbrev;
+
+                foreach( var v in query)
+                {
+                    
+                    Input.Departments.Add(new SelectListItem { Value = v, Text = v });
+                }
+            
 
 
 
@@ -138,8 +149,20 @@ namespace LMS.Areas.Identity.Pages.Account
         {
             returnUrl ??= Url.Content( "~/" );
             ExternalLogins = ( await _signInManager.GetExternalAuthenticationSchemesAsync() ).ToList();
+            var query = from d in db.Departments
+                        select d.SubjectAbbrev;
+
+            foreach (var v in query)
+            {
+
+                Input.Departments.Add(new SelectListItem { Value = v, Text = v });
+            }
+
             if ( ModelState.IsValid )
             {
+               
+         
+       
                 var uid = CreateNewUser(Input.FirstName, Input.LastName, Input.DOB, Input.Department, Input.Role);
                 var user = new ApplicationUser { UserName = uid };
 
@@ -197,8 +220,8 @@ namespace LMS.Areas.Identity.Pages.Account
         {
 
             var newID = "J'DINKLANGE MORGOONE";
-            using (db)
-            {
+           
+            
                 // find max to get uID
                 var maxUID = "u3000000";
                 var adminQuery =
@@ -210,6 +233,10 @@ namespace LMS.Areas.Identity.Pages.Account
                 var studQuery =
                     from s in db.Students
                     select s.UId;
+                var deptID = db.Departments
+                    .Where(d => d.SubjectAbbrev == departmentAbbrev)
+                    .Select(d => d.DeptId)
+                    .SingleOrDefault();
 
                 foreach (var v in adminQuery)
                 {
@@ -229,6 +256,12 @@ namespace LMS.Areas.Identity.Pages.Account
                         maxUID = v;
 
                 }
+                Console.WriteLine(departmentAbbrev);
+               
+         
+                
+
+                // if (deptID == -1) {CODE TO HANDLE STUDENTS OR PROFS WITHOUT DEPARTMENTS}
 
                 int num = int.Parse(maxUID.Substring(1));
                 num++;
@@ -256,6 +289,7 @@ namespace LMS.Areas.Identity.Pages.Account
                         newProf.FirstName = firstName;
                         newProf.LastName = lastName;
                         newProf.UId = newID;
+                        newProf.DId = deptID;
 
                         db.Professors.Add(newProf);
 
@@ -268,15 +302,16 @@ namespace LMS.Areas.Identity.Pages.Account
                         newStud.FirstName = firstName;
                         newStud.LastName = lastName;
                         newStud.UId = newID;
+                        newStud.DId = deptID; 
 
                         db.Students.Add(newStud);
                         break;
 
 
-                }
-                db.SaveChanges();
+                
+               
             }
-
+            db.SaveChanges();
 
 
             return newID;

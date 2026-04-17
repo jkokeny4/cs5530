@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -29,8 +30,16 @@ namespace LMS.Controllers
         /// </summary>
         /// <returns>The JSON array</returns>
         public IActionResult GetDepartments()
-        {            
-            return Json(null);
+        {
+            var departments = db.Departments
+         .Select(d => new
+         {
+             name = d.Name,
+             subject = d.SubjectAbbrev
+         })
+         .ToList();
+
+            return Json(departments);
         }
 
 

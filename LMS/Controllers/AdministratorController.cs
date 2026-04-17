@@ -1,11 +1,14 @@
-﻿using System;
+﻿using LMS.Models.LMSModels;
+using Microsoft.AspNetCore.Mvc;
+using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Runtime.Versioning;
 using System.Text.Json;
 using System.Threading.Tasks;
-using LMS.Models.LMSModels;
-using Microsoft.AspNetCore.Mvc;
+using System.Xml.Linq;
 
 // For more information on enabling MVC for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 [assembly: InternalsVisibleTo( "LMSControllerTests" )]
@@ -50,22 +53,23 @@ namespace LMS.Controllers
         /// false if the department already exists, true otherwise.</returns>
         public IActionResult CreateDepartment(string subject, string name)
         {
-            using (db)
-            {
-                var exists = db.Departments.Any(db => db.SubjectAbbrev == subject);
-                if (!exists)
-                {
 
-                    var newDepart = new Department();
-                    newDepart.Name = name;
-                    newDepart.SubjectAbbrev = subject;
-                    db.Departments.Add(newDepart);
-                    db.SaveChanges();
-                    return Json(new { success = true });
-                }
+
+            var exists = db.Departments.Any(db => db.SubjectAbbrev == subject);
+            if (!exists)
+            {
+
+                var newDepart = new Department();
+                newDepart.Name = name;
+                newDepart.SubjectAbbrev = subject;
+                db.Departments.Add(newDepart);
                 db.SaveChanges();
-                return Json(new { success = false });
+                return Json(new { success = true });
             }
+            db.SaveChanges();
+            return Json(new { success = false });
+
+
         }
 
 
@@ -79,8 +83,17 @@ namespace LMS.Controllers
         /// <returns>The JSON result</returns>
         public IActionResult GetCourses(string subject)
         {
-            
-            return Json(null);
+            var query = from c in db.Courses
+                        join d in db.Departments
+                        on c.DId equals d.DeptId
+                        where d.SubjectAbbrev == subject
+                        select new
+                        {
+                            number = c.Number,
+                            name = c.Name,
+                        };
+
+            return Json(query.ToList());
         }
 
         /// <summary>
@@ -94,9 +107,20 @@ namespace LMS.Controllers
         /// <returns>The JSON result</returns>
         public IActionResult GetProfessors(string subject)
         {
-            
-            return Json(null);
-            
+            var query = from p in db.Professors
+                        join d in db.Departments
+                        on p.DId equals d.DeptId
+                        select new
+                        {
+                            fname = p.FirstName,
+                            lname = p.LastName,
+                            uid = p.UId,
+                            dept = d.Name,
+                            subject = d.SubjectAbbrev
+                        };
+
+
+            return Json(query.ToList());
         }
 
 
@@ -111,8 +135,29 @@ namespace LMS.Controllers
         /// <returns>A JSON object containing {success = true/false}.
         /// false if the course already exists, true otherwise.</returns>
         public IActionResult CreateCourse(string subject, int number, string name)
-        {           
-            return Json(new { success = false });
+        {
+
+            Course newCourse = new Course();
+            newCourse.Number = number;
+            newCourse.Name = name;
+
+            var query = from d in db.Departments
+                        where d.SubjectAbbrev == subject
+                        select d.DeptId;
+            bool deptExists = false;
+            foreach (var v in query)
+            {
+                newCourse.DId = v;
+                deptExists = true;
+            }
+
+            if (!deptExists)
+                return Json(new { success = false });
+
+            db.Courses.Add(newCourse);
+            db.SaveChanges();
+
+            return Json(new { success = true });
         }
 
 
@@ -134,9 +179,35 @@ namespace LMS.Controllers
         /// a Class offering of the same Course in the same Semester,
         /// true otherwise.</returns>
         public IActionResult CreateClass(string subject, int number, string season, int year, DateTime start, DateTime end, string location, string instructor)
-        {            
-            return Json(new { success = false});
-        }
+        { 
+            
+           var queryDept = from d in db.Departments
+                            where d.SubjectAbbrev == subject
+                            select d.DeptId;
+
+            var queryClass = from c in db.Courses
+                             where c.Number == number
+                             select c.CourseId;
+            Class newClass = new Class();
+            newClass.Year = (uint)year;
+            newClass.Season = season;
+            newClass.Location = location;
+            newClass.EndTime = TimeOnly.FromDateTime(end);
+            newClass.StartTime = TimeOnly.FromDateTime(start);
+            newClass.ProfessorId = instructor;
+            newClass.CourseId = queryClass.First();
+
+
+            // subject and number from courses table get us a class id and dept id
+
+
+
+
+            db.Classes.Add(newClass);
+            db.SaveChanges();
+
+            return Json(new { success = true });
+        } 
 
 
         /*******End code to modify********/
