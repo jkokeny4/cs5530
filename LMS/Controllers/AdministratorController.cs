@@ -137,23 +137,27 @@ namespace LMS.Controllers
         /// false if the course already exists, true otherwise.</returns>
         public IActionResult CreateCourse(string subject, int number, string name)
         {
+            // Find the department
+            var dept = db.Departments
+                .FirstOrDefault(d => d.SubjectAbbrev == subject);
 
-            Course newCourse = new Course();
-            newCourse.Number = number;
-            newCourse.Name = name;
-
-            var query = from d in db.Departments
-                        where d.SubjectAbbrev == subject
-                        select d.DeptId;
-            bool deptExists = false;
-            foreach (var v in query)
-            {
-                newCourse.DId = v;
-                deptExists = true;
-            }
-
-            if (!deptExists)
+            if (dept == null)
                 return Json(new { success = false });
+
+            // Check if course already exists in that department
+            var exists = db.Courses.Any(c =>
+                c.Number == number && c.DId == dept.DeptId);
+
+            if (exists)
+                return Json(new { success = false });
+
+            // Create course
+            var newCourse = new Course
+            {
+                Number = number,
+                Name = name,
+                DId = dept.DeptId
+            };
 
             db.Courses.Add(newCourse);
             db.SaveChanges();
@@ -179,36 +183,59 @@ namespace LMS.Controllers
         /// within the start-end range in the same semester, or if there is already
         /// a Class offering of the same Course in the same Semester,
         /// true otherwise.</returns>
-        public IActionResult CreateClass(string subject, int number, string season, int year, DateTime start, DateTime end, string location, string instructor)
-        { 
-            
-           var queryDept = from d in db.Departments
-                            where d.SubjectAbbrev == subject
-                            select d.DeptId;
+        public IActionResult CreateClass(string subject, int number, string season, int year,
+    DateTime start, DateTime end, string location, string instructor)
+        {
+            // Find the course
+            var courseId = (from c in db.Courses
+                            join d in db.Departments on c.DId equals d.DeptId
+                            where d.SubjectAbbrev == subject && c.Number == number
+                            select c.CourseId).FirstOrDefault();
 
-            var queryClass = from c in db.Courses
-                             where c.Number == number
-                             select c.CourseId;
-            Class newClass = new Class();
-            newClass.Year = (uint)year;
-            newClass.Season = season;
-            newClass.Location = location;
-            newClass.EndTime = TimeOnly.FromDateTime(end);
-            newClass.StartTime = TimeOnly.FromDateTime(start);
-            newClass.ProfessorId = instructor;
-            newClass.CourseId = queryClass.First();
+            if (courseId == 0)
+                return Json(new { success = false });
 
+            // Check if class already exists in same semester
+            var duplicate = db.Classes.Any(c =>
+                c.CourseId == courseId &&
+                c.Season == season &&
+                c.Year == year);
 
-            // subject and number from courses table get us a class id and dept id
+            if (duplicate)
+                return Json(new { success = false });
 
+            // Convert times
+            var startTime = TimeOnly.FromDateTime(start);
+            var endTime = TimeOnly.FromDateTime(end);
 
+            // Check for location/time conflict
+            var conflict = db.Classes.Any(c =>
+                c.Location == location &&
+                c.Season == season &&
+                c.Year == year &&
+                !(endTime <= c.StartTime || startTime >= c.EndTime)
+            );
 
+            if (conflict)
+                return Json(new { success = false });
+
+            // Create class
+            var newClass = new Class
+            {
+                CourseId = courseId,
+                Season = season,
+                Year = (uint)year,
+                Location = location,
+                StartTime = startTime,
+                EndTime = endTime,
+                ProfessorId = instructor
+            };
 
             db.Classes.Add(newClass);
             db.SaveChanges();
 
             return Json(new { success = true });
-        } 
+        }
 
 
         /*******End code to modify********/

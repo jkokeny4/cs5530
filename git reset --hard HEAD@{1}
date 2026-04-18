@@ -1,0 +1,5 @@
+[33mc2c6d1b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m, [m[1;31morigin/HEAD[m[33m)[m HEAD@{0}: pull --progress --no-edit --no-stat --recurse-submodules=no origin: Fast-forward
+[33mffbd8c3[m HEAD@{1}: commit: adding the add department methods
+[33mc9d4f5c[m HEAD@{2}: commit: adding create user method
+[33m9d801a1[m HEAD@{3}: commit: Add project files.
+[33m0437af4[m HEAD@{4}: commit (initial): Add .gitattributes and .gitignore.
